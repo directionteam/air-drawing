@@ -1,190 +1,290 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Air Drawing - ارسم في الهواء</title>
-<style>
-  body { margin: 0; overflow: hidden; font-family: sans-serif; background: #111; }
-  canvas { position: absolute; top: 0; left: 0; }
-  #video { display: none; }
-  #ui {
-    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-    display: flex; gap: 12px; background: rgba(0,0,0,0.6);
-    padding: 12px 20px; border-radius: 40px; z-index: 10;
-    align-items: center; flex-wrap: wrap; justify-content: center;
-  }
-  .color-btn { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; }
-  .color-btn.active { border-color: #ff0; transform: scale(1.15); }
-  #clear-btn {
-    background: #e74c3c; color: #fff; border: none; padding: 8px 16px;
-    border-radius: 20px; cursor: pointer; font-size: 14px;
-  }
-  #status {
-    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-    color: #fff; background: rgba(0,0,0,0.6); padding: 8px 20px;
-    border-radius: 20px; z-index: 10; font-size: 14px;
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة الذاكرة الإلكترونية</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #111; font-family: sans-serif; color: white; user-select: none; }
+        #video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; opacity: 0.15; transform: scaleX(-1); }
+        #game-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; z-index: 10; }
+        .card { width: 110px; height: 130px; background-color: #2a2a2a; border-radius: 12px; display: flex; justify-content: center; align-items: center; cursor: none; transition: transform 0.3s, background-color 0.3s; box-shadow: 0 4px 8px rgba(0,0,0,0.5); border: 2px solid #444; overflow: hidden; padding: 10px; }
+        .card img { width: 100%; height: 100%; object-fit: contain; display: none; border-radius: 8px; }
+        .card.flipped { background-color: #007aff; border-color: #fff; }
+        .card.flipped img { display: block; }
+        .card.matched { background-color: #34c759; border-color: #34c759; opacity: 0.8; }
+        .card.matched img { display: block; }
+        #cursor { position: absolute; width: 30px; height: 30px; background-color: rgba(255, 59, 48, 0.7); border-radius: 50%; pointer-events: none; z-index: 100; transform: translate(-50%, -50%); border: 2px solid white; box-shadow: 0 0 10px red; display: none; }
+        #info-panel { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); padding: 15px 30px; border-radius: 20px; text-align: center; border: 2px solid #007aff; z-index: 20; font-size: 18px; display: none; width: 60%; }
+        #top-bar { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 50px; z-index: 20; }
+        .timer-box { background: rgba(0,0,0,0.8); padding: 10px 25px; border-radius: 20px; font-size: 24px; font-weight: bold; border: 2px solid #555; }
+        #preview-timer { color: #ffcc00; display: none; border-color: #ffcc00; }
+        #game-timer { color: #0f0; display: none; border-color: #0f0; }
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; flex-direction: column; z-index: 50; }
+        #overlay h1 { font-size: 40px; margin-bottom: 20px; color: #007aff; }
+        #overlay p { font-size: 22px; color: #ccc; margin: 5px; }
+        #start-btn { margin-top: 30px; padding: 15px 40px; font-size: 20px; font-weight: bold; background-color: #007aff; color: white; border: none; border-radius: 30px; cursor: pointer; transition: 0.2s; }
+        #start-btn:hover { background-color: #005bb5; }
+    </style>
 </head>
 <body>
 
-<video id="video" autoplay playsinline></video>
-<canvas id="canvas"></canvas>
+    <video id="video" autoplay playsinline muted></video>
+    <div id="cursor"></div>
 
-<div id="status">⏳ جاري تحميل نموذج التعرف على اليد...</div>
+    <div id="top-bar">
+        <div id="preview-timer" class="timer-box">👀 حفظ: 10</div>
+        <div id="game-timer" class="timer-box">⏳ وقت: 40</div>
+    </div>
 
-<div id="ui">
-  <div class="color-btn active" style="background:#ff3b30" data-color="#ff3b30"></div>
-  <div class="color-btn" style="background:#34c759" data-color="#34c759"></div>
-  <div class="color-btn" style="background:#007aff" data-color="#007aff"></div>
-  <div class="color-btn" style="background:#ffcc00" data-color="#ffcc00"></div>
-  <div class="color-btn" style="background:#af52de" data-color="#af52de"></div>
-  <div class="color-btn" style="background:#ffffff" data-color="#ffffff"></div>
-  <button id="clear-btn">مسح الكل</button>
-</div>
+    <div id="game-container"></div>
 
-<script type="module">
-import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
+    <div id="info-panel">
+        <span id="info-text">معلومة</span>
+    </div>
 
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const statusEl = document.getElementById('status');
+    <div id="overlay">
+        <h1>⚡ تحدي الذاكرة الإلكترونية</h1>
+        <p>استخدم إصبعك للتحكم بالمؤشر</p>
+        <p>احفظ أماكن القطع خلال 10 ثوانٍ</p>
+        <p>ثم جد الأزواج المتشابهة قبل انتهاء الـ 40 ثانية!</p>
+        <button id="start-btn">ابدأ التحدي</button>
+    </div>
 
-let handLandmarker = null;
-let currentColor = '#ff3b30';
-let isDrawing = false;
-let lastX = null, lastY = null;
+    <script type="module">
+        import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
 
-// ضبط حجم اللوحة
-function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.lineWidth = 6;
-}
-window.addEventListener('resize', resize);
-resize();
+        const video = document.getElementById('video');
+        const cursor = document.getElementById('cursor');
+        const gameContainer = document.getElementById('game-container');
+        const infoPanel = document.getElementById('info-panel');
+        const infoText = document.getElementById('info-text');
+        
+        const previewTimer = document.getElementById('preview-timer');
+        const gameTimer = document.getElementById('game-timer');
+        const overlay = document.getElementById('overlay');
+        const startBtn = document.getElementById('start-btn');
 
-// أزرار الألوان
-document.querySelectorAll('.color-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentColor = btn.dataset.color;
-  });
-});
+        // 🔴 هنا نستخدم أسماء الصور الموجودة بجانب الكود 🔴
+        const icons = [
+            { img: "resistor.jpg", name: "مقاومة (Resistor)", fact: "تحد من تدفق التيار الكهربائي وتحمي باقي القطع." },
+            { img: "capacitor.jpg", name: "مكثف (Capacitor)", fact: "يخزن الطاقة الكهربائية ويطلقها عند الحاجة." },
+            { img: "transistor.jpg", name: "ترانزستور (Transistor)", fact: "يعمل كمفتاح أو مضخم إلكتروني، وهو أساس المعالجات." },
+            { img: "led.jpg", name: "دايود مشع (LED)", fact: "يسمح بمرور التيار باتجاه واحد ويحوله إلى ضوء." },
+            { img: "arduino.jpg", name: "أردوينو (Arduino)", fact: "لوحة تحكم إلكترونية مفتوحة المصدر لبناء المشاريع." },
+            { img: "servo.jpg", name: "محرك سيرفو (Servo)", fact: "محرك دقيق يتحكم بالزوايا لتوجيه الأجزاء." },
+            { img: "battery.jpg", name: "بطارية (Battery)", fact: "مصدر الطاقة الرئيسي للدائرة الإلكترونية." },
+            { img: "sensor.jpg", name: "حساس المسافة (Ultrasonic)", fact: "يستخدم الموجات الصوتية لقياس المسافات في الروبوتات." }
+        ];
 
-// مسح اللوحة
-document.getElementById('clear-btn').addEventListener('click', () => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-});
+        let cards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let lockBoard = true;
+        let lastHoverTime = 0;
+        let hoveredCard = null;
+        let handLandmarker = null;
+        
+        let gameInterval = null;
+        let previewTime = 10;
+        let playTime = 40;
+        let isGameActive = false;
 
-// تهيئة MediaPipe
-async function init() {
-  statusEl.textContent = '⏳ جاري تهيئة الكاميرا...';
+        function createBoard() {
+            let deck = [...icons, ...icons].sort(() => Math.random() - 0.5);
+            gameContainer.innerHTML = '';
+            cards = [];
+            
+            deck.forEach((item) => {
+                const card = document.createElement('div');
+                card.classList.add('card');
+                card.dataset.icon = item.name;
+                card.dataset.name = item.name;
+                card.dataset.fact = item.fact;
+                
+                const img = document.createElement('img');
+                img.src = item.img;
+                card.appendChild(img);
 
-  const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
-  );
+                gameContainer.appendChild(card);
+                cards.push(card);
+            });
+        }
 
-  handLandmarker = await HandLandmarker.createFromOptions(vision, {
-    baseOptions: {
-      modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-      delegate: "GPU"
-    },
-    runningMode: "VIDEO",
-    numHands: 1
-  });
+        function startPreview() {
+            overlay.style.display = 'none';
+            gameContainer.style.display = 'grid';
+            previewTimer.style.display = 'block';
+            gameTimer.style.display = 'block';
+            
+            cards.forEach(card => card.classList.add('flipped'));
+            
+            previewTime = 10;
+            previewTimer.innerText = `👀 حفظ: ${previewTime}`;
+            
+            let previewInterval = setInterval(() => {
+                previewTime--;
+                previewTimer.innerText = `👀 حفظ: ${previewTime}`;
+                
+                if (previewTime <= 0) {
+                    clearInterval(previewInterval);
+                    previewTimer.style.display = 'none';
+                    startGame();
+                }
+            }, 1000);
+        }
 
-  statusEl.textContent = '⏳ جاري تشغيل الكاميرا...';
+        function startGame() {
+            cards.forEach(card => card.classList.remove('flipped'));
+            lockBoard = false;
+            isGameActive = true;
+            
+            playTime = 40;
+            gameTimer.innerText = `⏳ وقت: ${playTime}`;
+            gameTimer.style.color = '#0f0';
 
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: { width: 1280, height: 720, facingMode: "user" }
-  });
+            gameInterval = setInterval(() => {
+                playTime--;
+                gameTimer.innerText = `⏳ وقت: ${playTime}`;
+                
+                if (playTime <= 10) gameTimer.style.color = '#ff3b30';
+                
+                if (playTime <= 0) {
+                    endGame(false);
+                }
+            }, 1000);
+        }
 
-  video.srcObject = stream;
-  await video.play();
+        function endGame(isWin) {
+            clearInterval(gameInterval);
+            isGameActive = false;
+            lockBoard = true;
+            
+            overlay.style.display = 'flex';
+            if (isWin) {
+                overlay.innerHTML = `<h1 style="color:#34c759">🏆 مبروك! فزت!</h1>
+                                     <p>لقد أثبتت أنك خبير في الإلكترونيات</p>
+                                     <button id="start-btn" onclick="location.reload()">العب مرة أخرى</button>`;
+            } else {
+                overlay.innerHTML = `<h1 style="color:#ff3b30">⏰ انتهى الوقت!</h1>
+                                     <p>كانت قريباً... جرب مرة أخرى</p>
+                                     <button id="start-btn" onclick="location.reload()">إعادة المحاولة</button>`;
+            }
+        }
 
-  statusEl.textContent = '✅ جاهز! ارفع إصبع السبابة للرسم';
+        function flipCard(card) {
+            if (lockBoard || !isGameActive) return;
+            if (card === flippedCards[0] || card.classList.contains('flipped')) return;
 
-  requestAnimationFrame(loop);
-}
+            card.classList.add('flipped');
+            flippedCards.push(card);
 
-// حلقة الرسم الرئيسية
-function loop() {
-  if (video.readyState !== 4 || !handLandmarker) {
-    requestAnimationFrame(loop);
-    return;
-  }
+            if (flippedCards.length === 2) {
+                checkMatch();
+            }
+        }
 
-  const results = handLandmarker.detectForVideo(video, performance.now());
+        function checkMatch() {
+            lockBoard = true;
+            const [card1, card2] = flippedCards;
 
-  // رسم فيديو الكاميرا كخلفية
-  ctx.save();
-  ctx.translate(canvas.width, 0);
-  ctx.scale(-1, 1);
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  ctx.restore();
+            if (card1.dataset.icon === card2.dataset.icon) {
+                setTimeout(() => {
+                    card1.classList.add('matched');
+                    card2.classList.add('matched');
+                    
+                    infoText.innerHTML = `<strong>${card1.dataset.name}</strong><br>${card1.dataset.fact}`;
+                    infoPanel.style.display = 'block';
+                    setTimeout(() => { infoPanel.style.display = 'none'; }, 4000);
 
-  if (results.landmarks && results.landmarks.length > 0) {
-    const landmarks = results.landmarks[0];
+                    matchedPairs++;
+                    if (matchedPairs === icons.length) {
+                        endGame(true);
+                    }
+                    resetBoard();
+                }, 500);
+            } else {
+                setTimeout(() => {
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                    resetBoard();
+                }, 800);
+            }
+        }
 
-    // نقطة طرف السبابة = 8
-    const tip = landmarks[8];
-    const x = (1 - tip.x) * canvas.width;
-    const y = tip.y * canvas.height;
+        function resetBoard() {
+            [flippedCards, lockBoard] = [[], false];
+        }
 
-    // الكشف عن "إصبع السبابة مرفوع": طرف السبابة أعلى من المفصل الثاني
-    const indexTip = landmarks[8];
-    const indexPip = landmarks[6];
-    const indexExtended = indexTip.y < indexPip.y;
+        async function initCV() {
+            const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm");
+            handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+                    delegate: "GPU"
+                },
+                runningMode: "VIDEO",
+                numHands: 1
+            });
 
-    // الكشف عن الأصابع الأخرى مثنية (على الأقل الوسطى)
-    const middleTip = landmarks[12];
-    const middlePip = landmarks[10];
-    const middleBent = middleTip.y > middlePip.y;
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+            await video.play();
 
-    const isDrawingGesture = indexExtended && middleBent;
+            requestAnimationFrame(predictWebcam);
+        }
 
-    if (isDrawingGesture) {
-      if (!isDrawing) {
-        // بداية خط جديد
-        isDrawing = true;
-        lastX = x;
-        lastY = y;
-      } else {
-        // استمرار الرسم
-        ctx.beginPath();
-        ctx.strokeStyle = currentColor;
-        ctx.lineWidth = 6;
-        ctx.moveTo(lastX, lastY);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-        lastX = x;
-        lastY = y;
-      }
-    } else {
-      isDrawing = false;
-      lastX = null;
-      lastY = null;
-    }
-  } else {
-    isDrawing = false;
-    lastX = null;
-    lastY = null;
-  }
+        function predictWebcam() {
+            if (video.readyState === 4) {
+                const now = performance.now();
+                const results = handLandmarker.detectForVideo(video, now);
 
-  requestAnimationFrame(loop);
-}
+                if (results.landmarks && results.landmarks.length > 0) {
+                    const hand = results.landmarks[0];
+                    const indexTip = hand[8]; 
+                    
+                    const x = (1 - indexTip.x) * window.innerWidth;
+                    const y = indexTip.y * window.innerHeight;
 
-init().catch(err => {
-  statusEl.textContent = '❌ خطأ: ' + err.message;
-  console.error(err);
-});
-</script>
+                    cursor.style.display = 'block';
+                    cursor.style.left = x + 'px';
+                    cursor.style.top = y + 'px';
 
+                    checkHover(x, y, now);
+                } else {
+                    cursor.style.display = 'none';
+                    hoveredCard = null;
+                }
+            }
+            requestAnimationFrame(predictWebcam);
+        }
+
+        function checkHover(x, y, now) {
+            const element = document.elementFromPoint(x, y);
+            
+            if (element && element.closest('.card')) {
+                const card = element.closest('.card');
+                
+                if (card !== hoveredCard) {
+                    hoveredCard = card;
+                    lastHoverTime = now; 
+                } else if (now - lastHoverTime > 600) { 
+                    flipCard(card);
+                    lastHoverTime = now + 1000; 
+                }
+            } else {
+                hoveredCard = null;
+            }
+        }
+
+        startBtn.addEventListener('click', () => {
+            createBoard();
+            startPreview();
+            initCV().catch(err => {
+                alert("خطأ بالكاميرا: تأكد من إعطاء الإذن.");
+            });
+        });
+
+    </script>
 </body>
 </html>
