@@ -6,10 +6,9 @@
     <title>لعبة الذاكرة الإلكترونية - التحدي</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #111; font-family: sans-serif; color: white; user-select: none; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        #video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; opacity: 0.1; transform: scaleX(-1); z-index: 0; }
         
         /* تقسيم الشاشة */
-        #main-container { display: flex; gap: 30px; z-index: 10; width: 90%; max-width: 900px; align-items: flex-start; }
+        #main-container { display: flex; gap: 30px; z-index: 10; width: 95%; max-width: 1000px; align-items: flex-start; }
         
         /* شبكة الكروت (على اليمين) */
         #game-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex: 2; }
@@ -21,21 +20,36 @@
         .card.matched img { display: block; }
 
         /* اللوحة الجانبية (على اليسار) */
-        #sidebar { flex: 1; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 15px; border: 2px solid #007aff; display: flex; flex-direction: column; gap: 15px; }
-        #sidebar h2 { margin: 0; font-size: 20px; color: #007aff; text-align: center; }
+        #sidebar { flex: 1.2; display: flex; flex-direction: column; gap: 15px; }
         
-        /* قائمة الأسماء */
-        #names-list { list-style: none; padding: 0; margin: 0; font-size: 14px; max-height: 150px; overflow-y: auto; }
-        #names-list li { background: #222; margin-bottom: 5px; padding: 8px; border-radius: 5px; border-right: 3px solid #34c759; }
+        /* صندوق الكاميرا */
+        #camera-box {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            background: #000;
+            border: 3px solid #007aff;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(0, 122, 255, 0.4);
+        }
+        #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 
-        /* لوحة الشرف */
-        #leaderboard { margin-top: auto; border-top: 1px solid #444; padding-top: 10px; }
-        .score-item { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; background: #222; padding: 5px 10px; border-radius: 5px; }
-
-        /* المؤقتات */
-        .timer-box { background: rgba(0,0,0,0.8); padding: 10px; border-radius: 10px; font-size: 20px; font-weight: bold; text-align: center; border: 2px solid #555; }
+        /* لوحة البيانات */
+        #data-panel { background: rgba(0,0,0,0.8); padding: 15px; border-radius: 15px; border: 2px solid #444; display: flex; flex-direction: column; gap: 10px; }
+        .timer-box { padding: 10px; border-radius: 10px; font-size: 20px; font-weight: bold; text-align: center; border: 2px solid #555; }
         #preview-timer { color: #ffcc00; display: none; border-color: #ffcc00; }
         #game-timer { color: #0f0; display: none; border-color: #0f0; }
+
+        /* معلومات القطع */
+        #info-panel { background: rgba(0, 122, 255, 0.2); border: 2px solid #007aff; padding: 10px; border-radius: 10px; text-align: center; font-size: 14px; min-height: 50px; display: none; }
+        
+        #names-list { list-style: none; padding: 0; margin: 0; font-size: 13px; max-height: 100px; overflow-y: auto; }
+        #names-list li { background: #222; margin-bottom: 5px; padding: 6px; border-radius: 5px; border-right: 3px solid #34c759; }
+
+        #leaderboard { border-top: 1px solid #444; padding-top: 10px; }
+        #leaderboard h3 { margin: 0 0 10px 0; font-size: 16px; color: #ffcc00; text-align: center; }
+        .score-item { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; background: #222; padding: 5px 10px; border-radius: 5px; }
 
         /* المؤشر */
         #cursor { position: absolute; width: 30px; height: 30px; background-color: rgba(255, 59, 48, 0.7); border-radius: 50%; pointer-events: none; z-index: 100; transform: translate(-50%, -50%); border: 2px solid white; box-shadow: 0 0 10px red; display: none; }
@@ -51,7 +65,6 @@
 </head>
 <body>
 
-    <video id="video" autoplay playsinline muted></video>
     <div id="cursor"></div>
 
     <div id="main-container">
@@ -60,15 +73,30 @@
 
         <!-- اللوحة الجانبية -->
         <div id="sidebar">
-            <div id="preview-timer" class="timer-box">👀 حفظ: 10</div>
-            <div id="game-timer" class="timer-box">⏳ وقت: 40</div>
             
-            <h2>🔍 القطع المكتشفة</h2>
-            <ul id="names-list"></ul>
+            <!-- صورة الكاميرا عالجنب -->
+            <div id="camera-box">
+                <video id="video" autoplay playsinline muted></video>
+            </div>
 
-            <div id="leaderboard">
-                <h2>🏆 أسرع 3 طلاب</h2>
-                <div id="scores-container"></div>
+            <!-- لوحة المؤقتات والمعلومات -->
+            <div id="data-panel">
+                <div id="preview-timer" class="timer-box">👀 حفظ: 10</div>
+                <div id="game-timer" class="timer-box">⏳ وقت: 40</div>
+                
+                <!-- معلومة القطعة اللي بتتطابق -->
+                <div id="info-panel">
+                    <strong id="info-name"></strong><br>
+                    <span id="info-fact"></span>
+                </div>
+
+                <h3 style="margin: 5px 0 0 0; font-size: 14px; color: #ccc;">🔍 القطع المكتشفة:</h3>
+                <ul id="names-list"></ul>
+
+                <div id="leaderboard">
+                    <h3>🏆 أسرع 3 طلاب</h3>
+                    <div id="scores-container"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -94,11 +122,15 @@
         const overlay = document.getElementById('overlay');
         const startBtn = document.getElementById('start-btn');
         const playerNameInput = document.getElementById('player-name');
+        
+        const infoPanel = document.getElementById('info-panel');
+        const infoName = document.getElementById('info-name');
+        const infoFact = document.getElementById('info-fact');
 
         // 🔴 تأكدي أن أسماء الصور تطابق المرفوعة على GitHub 🔴
         const icons = [
-            { img: "resistor.jpg", name: "مقاومة (Resistor)", fact: "تحد من تدفق التيار." },
-            { img: "capacitor.jpg", name: "مكثف (Capacitor)", fact: "يخزن الطاقة الكهربائية." },
+            { img: "resistor.jpg", name: "مقاومة (Resistor)", fact: "تحد من تدفق التيار الكهربائي." },
+            { img: "capacitor.jpg", name: "مكثف (Capacitor)", fact: "يخزن الطاقة ويطلقها عند الحاجة." },
             { img: "transistor.jpg", name: "ترانزستور (Transistor)", fact: "مفتاح إلكتروني دقيق." },
             { img: "led.jpg", name: "دايود (LED)", fact: "يحول الكهرباء إلى ضوء." },
             { img: "arduino.jpg", name: "أردوينو (Arduino)", fact: "عقل المشاريع الإلكترونية." },
@@ -121,17 +153,16 @@
         let isGameActive = false;
         let currentPlayer = "مجهول";
 
-        // إدارة لوحة الشرف (Leaderboard)
         let highScores = JSON.parse(localStorage.getItem('electronicsGameScores')) || [];
         function renderScores() {
-            highScores.sort((a, b) => a.time - b.time); // ترتيب تصاعدي (الأقل وقتاً أولاً)
+            highScores.sort((a, b) => a.time - b.time);
             const container = document.getElementById('scores-container');
             container.innerHTML = '';
             highScores.slice(0, 3).forEach((score, index) => {
                 container.innerHTML += `<div class="score-item"><span>${index+1}. ${score.name}</span> <span>${score.time} ث</span></div>`;
             });
         }
-        renderScores(); // عرض الأسماء عند تحميل الصفحة
+        renderScores();
 
         function createBoard() {
             let deck = [...icons, ...icons].sort(() => Math.random() - 0.5);
@@ -144,6 +175,7 @@
                 card.classList.add('card');
                 card.dataset.icon = item.name;
                 card.dataset.name = item.name;
+                card.dataset.fact = item.fact;
                 
                 const img = document.createElement('img');
                 img.src = item.img;
@@ -205,8 +237,7 @@
             overlay.style.display = 'flex';
             
             if (isWin) {
-                let timeTaken = 40 - playTime; // الوقت المستغرق
-                // إضافة الاسم للوحة الشرف
+                let timeTaken = 40 - playTime; 
                 highScores.push({ name: currentPlayer, time: timeTaken });
                 localStorage.setItem('electronicsGameScores', JSON.stringify(highScores));
                 renderScores();
@@ -246,6 +277,11 @@
                     const li = document.createElement('li');
                     li.innerText = card1.dataset.name;
                     namesList.appendChild(li);
+
+                    // عرض المعلومة في اللوحة الجانبية
+                    infoName.innerText = card1.dataset.name;
+                    infoFact.innerText = card1.dataset.fact;
+                    infoPanel.style.display = 'block';
 
                     matchedPairs++;
                     if (matchedPairs === icons.length) {
