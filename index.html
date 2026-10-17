@@ -3,27 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لعبة الذاكرة الإلكترونية</title>
+    <title>لعبة الذاكرة الإلكترونية - التحدي</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #111; font-family: sans-serif; color: white; user-select: none; }
-        #video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; opacity: 0.15; transform: scaleX(-1); }
-        #game-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; z-index: 10; }
-        .card { width: 110px; height: 130px; background-color: #2a2a2a; border-radius: 12px; display: flex; justify-content: center; align-items: center; cursor: none; transition: transform 0.3s, background-color 0.3s; box-shadow: 0 4px 8px rgba(0,0,0,0.5); border: 2px solid #444; overflow: hidden; padding: 10px; }
+        body { margin: 0; overflow: hidden; background-color: #111; font-family: sans-serif; color: white; user-select: none; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #video { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; opacity: 0.1; transform: scaleX(-1); z-index: 0; }
+        
+        /* تقسيم الشاشة */
+        #main-container { display: flex; gap: 30px; z-index: 10; width: 90%; max-width: 900px; align-items: flex-start; }
+        
+        /* شبكة الكروت (على اليمين) */
+        #game-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex: 2; }
+        .card { aspect-ratio: 3/4; background-color: #2a2a2a; border-radius: 12px; display: flex; justify-content: center; align-items: center; cursor: none; transition: transform 0.3s, background-color 0.3s; box-shadow: 0 4px 8px rgba(0,0,0,0.5); border: 2px solid #444; overflow: hidden; padding: 5px; }
         .card img { width: 100%; height: 100%; object-fit: contain; display: none; border-radius: 8px; }
         .card.flipped { background-color: #007aff; border-color: #fff; }
         .card.flipped img { display: block; }
         .card.matched { background-color: #34c759; border-color: #34c759; opacity: 0.8; }
         .card.matched img { display: block; }
-        #cursor { position: absolute; width: 30px; height: 30px; background-color: rgba(255, 59, 48, 0.7); border-radius: 50%; pointer-events: none; z-index: 100; transform: translate(-50%, -50%); border: 2px solid white; box-shadow: 0 0 10px red; display: none; }
-        #info-panel { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); padding: 15px 30px; border-radius: 20px; text-align: center; border: 2px solid #007aff; z-index: 20; font-size: 18px; display: none; width: 60%; }
-        #top-bar { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 50px; z-index: 20; }
-        .timer-box { background: rgba(0,0,0,0.8); padding: 10px 25px; border-radius: 20px; font-size: 24px; font-weight: bold; border: 2px solid #555; }
+
+        /* اللوحة الجانبية (على اليسار) */
+        #sidebar { flex: 1; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 15px; border: 2px solid #007aff; display: flex; flex-direction: column; gap: 15px; }
+        #sidebar h2 { margin: 0; font-size: 20px; color: #007aff; text-align: center; }
+        
+        /* قائمة الأسماء */
+        #names-list { list-style: none; padding: 0; margin: 0; font-size: 14px; max-height: 150px; overflow-y: auto; }
+        #names-list li { background: #222; margin-bottom: 5px; padding: 8px; border-radius: 5px; border-right: 3px solid #34c759; }
+
+        /* لوحة الشرف */
+        #leaderboard { margin-top: auto; border-top: 1px solid #444; padding-top: 10px; }
+        .score-item { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; background: #222; padding: 5px 10px; border-radius: 5px; }
+
+        /* المؤقتات */
+        .timer-box { background: rgba(0,0,0,0.8); padding: 10px; border-radius: 10px; font-size: 20px; font-weight: bold; text-align: center; border: 2px solid #555; }
         #preview-timer { color: #ffcc00; display: none; border-color: #ffcc00; }
         #game-timer { color: #0f0; display: none; border-color: #0f0; }
-        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; flex-direction: column; z-index: 50; }
-        #overlay h1 { font-size: 40px; margin-bottom: 20px; color: #007aff; }
-        #overlay p { font-size: 22px; color: #ccc; margin: 5px; }
-        #start-btn { margin-top: 30px; padding: 15px 40px; font-size: 20px; font-weight: bold; background-color: #007aff; color: white; border: none; border-radius: 30px; cursor: pointer; transition: 0.2s; }
+
+        /* المؤشر */
+        #cursor { position: absolute; width: 30px; height: 30px; background-color: rgba(255, 59, 48, 0.7); border-radius: 50%; pointer-events: none; z-index: 100; transform: translate(-50%, -50%); border: 2px solid white; box-shadow: 0 0 10px red; display: none; }
+
+        /* شاشات البداية والنهاية */
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; flex-direction: column; z-index: 50; }
+        #overlay h1 { font-size: 40px; margin-bottom: 10px; color: #007aff; }
+        #overlay p { font-size: 18px; color: #ccc; margin: 5px; text-align: center; }
+        #player-name { padding: 10px; font-size: 18px; border-radius: 8px; border: none; margin-top: 20px; text-align: center; width: 200px; }
+        #start-btn { margin-top: 15px; padding: 12px 30px; font-size: 18px; font-weight: bold; background-color: #007aff; color: white; border: none; border-radius: 30px; cursor: pointer; transition: 0.2s; }
         #start-btn:hover { background-color: #005bb5; }
     </style>
 </head>
@@ -32,22 +54,31 @@
     <video id="video" autoplay playsinline muted></video>
     <div id="cursor"></div>
 
-    <div id="top-bar">
-        <div id="preview-timer" class="timer-box">👀 حفظ: 10</div>
-        <div id="game-timer" class="timer-box">⏳ وقت: 40</div>
+    <div id="main-container">
+        <!-- شبكة اللعبة -->
+        <div id="game-container"></div>
+
+        <!-- اللوحة الجانبية -->
+        <div id="sidebar">
+            <div id="preview-timer" class="timer-box">👀 حفظ: 10</div>
+            <div id="game-timer" class="timer-box">⏳ وقت: 40</div>
+            
+            <h2>🔍 القطع المكتشفة</h2>
+            <ul id="names-list"></ul>
+
+            <div id="leaderboard">
+                <h2>🏆 أسرع 3 طلاب</h2>
+                <div id="scores-container"></div>
+            </div>
+        </div>
     </div>
 
-    <div id="game-container"></div>
-
-    <div id="info-panel">
-        <span id="info-text">معلومة</span>
-    </div>
-
+    <!-- شاشة البداية -->
     <div id="overlay">
         <h1>⚡ تحدي الذاكرة الإلكترونية</h1>
-        <p>استخدم إصبعك للتحكم بالمؤشر</p>
-        <p>احفظ أماكن القطع خلال 10 ثوانٍ</p>
-        <p>ثم جد الأزواج المتشابهة قبل انتهاء الـ 40 ثانية!</p>
+        <p>جد الأزواج المتشابهة قبل انتهاء الـ 40 ثانية</p>
+        <p>الأسرع في إنهاء اللعبة هو من يفوز!</p>
+        <input type="text" id="player-name" placeholder="اكتب اسمك هنا..." autocomplete="off">
         <button id="start-btn">ابدأ التحدي</button>
     </div>
 
@@ -57,24 +88,23 @@
         const video = document.getElementById('video');
         const cursor = document.getElementById('cursor');
         const gameContainer = document.getElementById('game-container');
-        const infoPanel = document.getElementById('info-panel');
-        const infoText = document.getElementById('info-text');
-        
+        const namesList = document.getElementById('names-list');
         const previewTimer = document.getElementById('preview-timer');
         const gameTimer = document.getElementById('game-timer');
         const overlay = document.getElementById('overlay');
         const startBtn = document.getElementById('start-btn');
+        const playerNameInput = document.getElementById('player-name');
 
-        // 🔴 هنا نستخدم أسماء الصور الموجودة بجانب الكود 🔴
+        // 🔴 تأكدي أن أسماء الصور تطابق المرفوعة على GitHub 🔴
         const icons = [
-            { img: "resistor.jpg", name: "مقاومة (Resistor)", fact: "تحد من تدفق التيار الكهربائي وتحمي باقي القطع." },
-            { img: "capacitor.jpg", name: "مكثف (Capacitor)", fact: "يخزن الطاقة الكهربائية ويطلقها عند الحاجة." },
-            { img: "transistor.jpg", name: "ترانزستور (Transistor)", fact: "يعمل كمفتاح أو مضخم إلكتروني، وهو أساس المعالجات." },
-            { img: "led.jpg", name: "دايود مشع (LED)", fact: "يسمح بمرور التيار باتجاه واحد ويحوله إلى ضوء." },
-            { img: "arduino.jpg", name: "أردوينو (Arduino)", fact: "لوحة تحكم إلكترونية مفتوحة المصدر لبناء المشاريع." },
-            { img: "servo.jpg", name: "محرك سيرفو (Servo)", fact: "محرك دقيق يتحكم بالزوايا لتوجيه الأجزاء." },
-            { img: "battery.jpg", name: "بطارية (Battery)", fact: "مصدر الطاقة الرئيسي للدائرة الإلكترونية." },
-            { img: "sensor.jpg", name: "حساس المسافة (Ultrasonic)", fact: "يستخدم الموجات الصوتية لقياس المسافات في الروبوتات." }
+            { img: "resistor.jpg", name: "مقاومة (Resistor)", fact: "تحد من تدفق التيار." },
+            { img: "capacitor.jpg", name: "مكثف (Capacitor)", fact: "يخزن الطاقة الكهربائية." },
+            { img: "transistor.jpg", name: "ترانزستور (Transistor)", fact: "مفتاح إلكتروني دقيق." },
+            { img: "led.jpg", name: "دايود (LED)", fact: "يحول الكهرباء إلى ضوء." },
+            { img: "arduino.jpg", name: "أردوينو (Arduino)", fact: "عقل المشاريع الإلكترونية." },
+            { img: "servo.jpg", name: "محرك سيرفو (Servo)", fact: "يتحكم بالزوايا بدقة." },
+            { img: "battery.jpg", name: "بطارية (Battery)", fact: "مصدر الطاقة الرئيسي." },
+            { img: "sensor.jpg", name: "حساس (Ultrasonic)", fact: "يقيس المسافات بالموجات." }
         ];
 
         let cards = [];
@@ -89,10 +119,24 @@
         let previewTime = 10;
         let playTime = 40;
         let isGameActive = false;
+        let currentPlayer = "مجهول";
+
+        // إدارة لوحة الشرف (Leaderboard)
+        let highScores = JSON.parse(localStorage.getItem('electronicsGameScores')) || [];
+        function renderScores() {
+            highScores.sort((a, b) => a.time - b.time); // ترتيب تصاعدي (الأقل وقتاً أولاً)
+            const container = document.getElementById('scores-container');
+            container.innerHTML = '';
+            highScores.slice(0, 3).forEach((score, index) => {
+                container.innerHTML += `<div class="score-item"><span>${index+1}. ${score.name}</span> <span>${score.time} ث</span></div>`;
+            });
+        }
+        renderScores(); // عرض الأسماء عند تحميل الصفحة
 
         function createBoard() {
             let deck = [...icons, ...icons].sort(() => Math.random() - 0.5);
             gameContainer.innerHTML = '';
+            namesList.innerHTML = '';
             cards = [];
             
             deck.forEach((item) => {
@@ -100,7 +144,6 @@
                 card.classList.add('card');
                 card.dataset.icon = item.name;
                 card.dataset.name = item.name;
-                card.dataset.fact = item.fact;
                 
                 const img = document.createElement('img');
                 img.src = item.img;
@@ -113,7 +156,6 @@
 
         function startPreview() {
             overlay.style.display = 'none';
-            gameContainer.style.display = 'grid';
             previewTimer.style.display = 'block';
             gameTimer.style.display = 'block';
             
@@ -161,9 +203,16 @@
             lockBoard = true;
             
             overlay.style.display = 'flex';
+            
             if (isWin) {
-                overlay.innerHTML = `<h1 style="color:#34c759">🏆 مبروك! فزت!</h1>
-                                     <p>لقد أثبتت أنك خبير في الإلكترونيات</p>
+                let timeTaken = 40 - playTime; // الوقت المستغرق
+                // إضافة الاسم للوحة الشرف
+                highScores.push({ name: currentPlayer, time: timeTaken });
+                localStorage.setItem('electronicsGameScores', JSON.stringify(highScores));
+                renderScores();
+
+                overlay.innerHTML = `<h1 style="color:#34c759">🏆 مبروك ${currentPlayer}!</h1>
+                                     <p>لقد فزت في <strong style="color:#fff">${timeTaken} ثانية</strong></p>
                                      <button id="start-btn" onclick="location.reload()">العب مرة أخرى</button>`;
             } else {
                 overlay.innerHTML = `<h1 style="color:#ff3b30">⏰ انتهى الوقت!</h1>
@@ -193,9 +242,10 @@
                     card1.classList.add('matched');
                     card2.classList.add('matched');
                     
-                    infoText.innerHTML = `<strong>${card1.dataset.name}</strong><br>${card1.dataset.fact}`;
-                    infoPanel.style.display = 'block';
-                    setTimeout(() => { infoPanel.style.display = 'none'; }, 4000);
+                    // إضافة الاسم للقائمة الجانبية
+                    const li = document.createElement('li');
+                    li.innerText = card1.dataset.name;
+                    namesList.appendChild(li);
 
                     matchedPairs++;
                     if (matchedPairs === icons.length) {
@@ -278,6 +328,7 @@
         }
 
         startBtn.addEventListener('click', () => {
+            currentPlayer = playerNameInput.value.trim() || "لاعب مجهول";
             createBoard();
             startPreview();
             initCV().catch(err => {
